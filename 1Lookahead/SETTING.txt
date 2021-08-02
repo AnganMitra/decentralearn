@@ -1,0 +1,31 @@
+loss_fn = nn.SmoothL1
+num_iters_base = 504
+eta_coef_DMFW = 1
+eta_exp_DMFW = 0.75
+rho_coef_DMFW = 4e-0
+rho_exp_DMFW = 1/2
+reg_coef_DMFW = 10
+L_DMFW = 504
+
+CNN1D
+
+
+SHUFFLE DAILY DATA
+
+LEARNING RATE SGD 0.5
+LOOKAHEAD 1 LOOKBACK 13
+BATCH SIZE 32
+
+CONV CHANNEL 8, KERNEL SIZE 5, BATCHNORM 8
+Pooling 3
+Leaky Relu ACTIVATION
+FC1 UNIT
+
+Xavier Uniform Init weights
+Batch Norm Init uniform
+
+CYCLE GRAPH 
+
+Local shuffle : False
+
+Note : Average Loss : 0.024709229016841004
