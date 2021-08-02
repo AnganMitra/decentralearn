@@ -19,5 +19,5 @@
 
 ## Forecasting Experiments on Thailand's Smart Building Dataset
 1. Isolated Learning (baseline model) vs Collective Learning with Neighbours
-2. Effect of Network Topology on Learning 
+2. Effect of Network Topology on Learning  [cycle, grid, line, clique]
 3. Preferential Learning amongst Partners
