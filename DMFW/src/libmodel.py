@@ -1,6 +1,4 @@
 from models.cnn import *
-from models.decoder import *
-from models.encoder import *
 from models.linear import *
 from models.lstm import *
 from models.seq2seq import *
