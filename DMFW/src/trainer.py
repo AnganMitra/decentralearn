@@ -1,4 +1,14 @@
 from lib import *
+from params import *
+from modelPredictor import *
+
+def seed_everything(seed=0):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
 class Trainer:
     def __init__(self, graph, loaders, model, model_param, loss,
                  num_iterations):
@@ -73,7 +83,7 @@ class Trainer:
         seed_everything()
         self.reset()
         
-        z1, z2, z4, z5 = self.dataloader
+        z1= list(self.dataloader.keys())[0]
 
         for i in range(self.num_nodes):
             self.models[i] = self.model(*self.param)
@@ -98,12 +108,14 @@ class Trainer:
                     os.makedirs(path)
                 self.plotPrediction(truez, predz,date,path_to_save=path)
             
-            for (couple1, couple2, couple4,couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
-                datazones = [self.__nodeInit(*couple1), 
-                             self.__nodeInit(*couple2),
-                             self.__nodeInit(*couple4),
-                             self.__nodeInit(*couple5)]
-                
+            # for (couple1, couple2, couple4,couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
+            #     datazones = [self.__nodeInit(*couple1), 
+            #                  self.__nodeInit(*couple2),
+            #                  self.__nodeInit(*couple4),
+            #                  self.__nodeInit(*couple5)]
+            datazones =[] 
+            for zone in self.dataloader:
+                datazones.append(self.__nodeInit(*zone))
 
                 for i in range(self.num_nodes):
                     self.initModelWeight(self.models[i])

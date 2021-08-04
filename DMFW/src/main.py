@@ -64,8 +64,8 @@ if __name__ == '__main__':
     except:
         pass
     try:
-        nb_zone = args['nb_zone']
-        print ("IFC File : ", nb_zone)
+        nb_zone = int(args['nb_zone'])
+        print ("Number of zones : ", nb_zone)
     except:
         pass
     try:
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         trainloader.append(loaderZtrain)
         testloder.append(loaderZtest)
     zone_no=0
-    for trainloader_item, testloder_item in zip([trainloader, testloder]):
+    for trainloader_item, testloder_item in zip(trainloader, testloder):
         zone_no+=1
         trainXMFW = Trainer(graph,trainloader_item,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,

@@ -1,0 +1,1 @@
+python3 src/main.py -i "../BKDataCleaned/"  -o "../OnlineModel/"  -sdt "2019-03-07" -edt "2019-12-31"  -cdt "2019-05-08" -fl 7  -zn 4  -grt "cycle"  -feat "temperature"  -resm "max"    
