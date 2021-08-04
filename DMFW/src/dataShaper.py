@@ -131,6 +131,6 @@ def LoaderByZone(data,zone_name,dates, lookback, lookahead, batch_size, shuffle=
         loaderZ[date] = loaderxy
     return loaderZ
 
-loaderZ1train = LoaderByZone(databyDate, z1, train_date, lookback, lookahead, batch_size, shuffle=True)
-loaderZ1test = LoaderByZone(databyDate, z1, test_date, lookback, lookahead, batch_size)
+# loaderZ1train = LoaderByZone(databyDate, z1, train_date, lookback, lookahead, batch_size, shuffle=True)
+# loaderZ1test = LoaderByZone(databyDate, z1, test_date, lookback, lookahead, batch_size)
 

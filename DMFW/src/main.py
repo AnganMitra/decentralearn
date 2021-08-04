@@ -4,6 +4,7 @@ from dataShaper import *
 from trainer import *
 from optimizerDMFW import *
 from modelPredictor import *
+from graphs import *
 
 if __name__ == '__main__':
 
@@ -14,9 +15,9 @@ if __name__ == '__main__':
     parser.add_argument("-sdt", "--start_date", help="start date: [YYYY-MM-DD]")
     parser.add_argument("-edt", "--end_date", help="end date: [YYYY-MM-DD]")
     parser.add_argument("-cdt", "--cut_date", help="cut date: [YYYY-MM-DD]")
-    parser.add_argument("-fl", "--floor", help="floor number")
+    parser.add_argument("-fl", "--floor", help="floor number [int between 1 to 7 inclusive]")
     parser.add_argument("-zn", "--nb_zone", help="number of zones")
-    parser.add_argument("-grt", "--graph_type", help="Types of graph: [grid, cycle, line, cyclic, isolated]")
+    parser.add_argument("-grt", "--graph_type", help="Types of graph: [grid, cycle, line, complete, isolated]")
     parser.add_argument("-feat", "--feature", help="Feature to learn : [temperature, humidity, power]")
     parser.add_argument("-resm", "--resample_method", help="Resample method: [min, max, sum]")
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     floor=None
     nb_zone=None
     graph_type=None
-
+    model = None
     
     try:
         input_dir = args['input_dir']
@@ -70,8 +71,24 @@ if __name__ == '__main__':
     try:
         graph_type = args['graph_type']
         print ("graph_type : ",graph_type)
+        graph, graph_name = None, None
+        if graph_type == "complete":
+            graph, graph_name = completegraph(nb_zone)
+        if graph_type == "cycle": 
+            graph, graph_name = cycle_graph(nb_zone)
+        if graph_type == "grid": 
+            grid_graph, grid = gridgraph(int(np.sqrt(nb_zone)),int(np.sqrt(nb_zone)))
+        if graph_type == "line": 
+            grid_graph_line, line = gridgraph(nb_zone,1)
     except:
         pass
+
+    try:
+        feature = args['feature']
+        print ("feature: ", feature)
+    except:
+        pass    
+
     try:
         feature = args['feature']
         print ("feature: ", feature)
@@ -82,9 +99,10 @@ if __name__ == '__main__':
         print ("resample_method: ",resample_method)
     except:
         pass
+    
+    
 
-
-    floor_dict = createDictFloor("Floor7")
+    floor_dict = createDictFloor(input_dir, f"Floor{floor}")
     for data in floor_dict.keys():
         zone = floor_dict[data]
         print("{} Start: {} End: {} Count:{}".format(data,zone.index.min(),zone.index.max(), zone.shape[0]))
@@ -110,14 +128,16 @@ if __name__ == '__main__':
         loaderZtest = LoaderByZone(databyDate, zoneID, test_date, lookback, lookahead, batch_size)
         trainloader.append(loaderZtrain)
         testloder.append(loaderZtest)
-
+    zone_no=0
     for trainloader_item, testloder_item in zip([trainloader, testloder]):
-        trainXMFW = Trainer(cycle_graph,trainloader_item,CNN1D, (8,lookahead,lookback,5), loss_fn,num_iters_base)
+        zone_no+=1
+        trainXMFW = Trainer(graph,trainloader_item,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
                                 path_figure_date= output_dir)
 
+        plt.clf()
         plt.figure(figsize=(10,5))
-        plt.suptitle("{}".format(cycle))
+        plt.suptitle("{}".format(graph_name))
         plt.plot(values_dmfw[:,0][:-1],values_dmfw[:,2][:-1], label='DMFW', marker='^', markersize=4,
                 markevery=[i for i in range(len(values_dmfw[:,0][1:])) if i%10==0])
         plt.axhline(y=0, color='grey', linestyle='--')
@@ -127,14 +147,18 @@ if __name__ == '__main__':
         plt.xlabel("#Iterations",fontsize=15)
         plt.ylabel("Gap",fontsize=15)
 
-        np.mean(values_dmfw[:,1][:-1])
+        plt.savefig(output_dir+f"Gap-F{floor}Z{zone_no}.png", dpi=200)
+        print(f"{np.mean(values_dmfw[:,1][:-1])}")
 
         onlineloss = np.cumsum(values_dmfw[:,1][:-1])
         arangement = np.arange(1,len(onlineloss)+1)
         onlineloss = onlineloss/arangement
+        print(f"{onlineloss}")
 
+
+        plt.clf()
         plt.figure(figsize=(10,5))
-        plt.suptitle("{}".format(cycle))
+        plt.suptitle("{}".format(graph_name))
         plt.plot(values_dmfw[:,0][:-1],values_dmfw[:,1][:-1], label='Step Loss', marker='^', markersize=4,
                 markevery=[i for i in range(len(values_dmfw[:,0][1:])) if i%10==0])
         plt.plot(values_dmfw[:,0][:-1],onlineloss, label='Online Loss', marker='^', markersize=4,
@@ -145,9 +169,14 @@ if __name__ == '__main__':
         plt.yscale("log")
         plt.xlabel("#Iterations",fontsize=15)
         plt.ylabel("Loss",fontsize=15)
+        plt.savefig(output_dir+f"OnlineLoss-F{floor}Z{zone_no}.png", dpi=200)
 
         model_trained = trainXMFW.models[0]
-        true, pred = ModelPrediction(model_trained,"2019-05-16", testloder_item, lookahead)
+        true, pred = ModelPrediction(model_trained,cut_date, testloder_item, lookahead)
 
-        plt.plot(true) 
-        plt.plot(pred)
+        plt.plot(true,label='Ground Truth' ) 
+        plt.plot(pred, label='Predicted')
+        plt.legend(loc='upper right')
+        plt.xlabel("#Iterations",fontsize=15)
+        plt.ylabel("Sensor Value",fontsize=15)
+        plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)

@@ -7,7 +7,7 @@ lookahead = 1
 batch_size = 32
 
 
-loss_fn = nn.SmoothL1
+loss_fn = nn.SmoothL1Loss
 num_iters_base = 504
 eta_coef_DMFW = 1
 eta_exp_DMFW = 0.75
