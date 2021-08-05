@@ -110,13 +110,13 @@ if __name__ == '__main__':
     try:
         model = args['model']
         if model == "cnn":
-            model = cnn
+            model = cnn.CNN1D
         elif model == "linear":
-            model = linear
+            model = linear.Linear
         elif model == "seq2seq":
-            model = seq2seq
+            model = seq2seq.Seq2Seq
         elif model == "lstm":
-            model = lstm
+            model = lstm.LSTM
         
     except:
         model = seq2seq
