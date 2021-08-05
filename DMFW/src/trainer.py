@@ -125,23 +125,25 @@ class Trainer:
             #     import pdb; pdb.set_trace()
             #     datazones= [self.__nodeInit(minuteLevelItem)  for minuteLevelItem in item]
             # import pdb; pdb.set_trace()
-            indexRemove = [i for i,v in enumerate(self.dataloader) if len(v)==0]
-            self.dataloader.pop(indexRemove[0])
-            self.num_nodes=len(self.dataloader)
-            z1, z2, z3 = self.dataloader
+            #indexRemove = [i for i,v in enumerate(self.dataloader) if len(v)==0]
+            #self.dataloader.pop(indexRemove[0])
+            #self.num_nodes=len(self.dataloader)
+            z1, z2, z4, z5  = self.dataloader
 
-            for (couple1, couple2, couple3) in zip(z1[date],z2[date],  z3[date]):
+            for (couple1, couple2, couple4, couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
                 datazones = [self.__nodeInit(*couple1), 
                              self.__nodeInit(*couple2),
-                             self.__nodeInit(*couple3),]
-                            #  self.__nodeInit(*couple5)]
+                             self.__nodeInit(*couple4),
+                             self.__nodeInit(*couple5)]
             # datazones =[] 
             # for zone in self.dataloader:
                 # datazones.append(self.__nodeInit(*zone))
 
+
                 for i in range(self.num_nodes):
                     self.initModelWeight(self.models[i])
                     self.models[i].train()
+
 
                     def closure():
                         self.optimizers[i].zero_grad(set_to_none=True)

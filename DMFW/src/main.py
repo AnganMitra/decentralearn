@@ -70,11 +70,13 @@ if __name__ == '__main__':
         print ("floor : ",floor)
     except:
         pass
+
     try:
         nb_zone = int(args['nb_zone'])
         print ("Number of zones : ", nb_zone)
     except:
         pass
+    '''
     try:
         graph_type = args['graph_type']
         print ("graph_type : ",graph_type)
@@ -88,7 +90,7 @@ if __name__ == '__main__':
         if graph_type == "line": 
             grid_graph_line, line = gridgraph(nb_zone,1)
     except:
-        pass
+        pass'''
 
     try:
         feature = args['feature']
@@ -157,17 +159,36 @@ if __name__ == '__main__':
 
     train_date, test_date = splitDate(remain_date, cut_date)
     databyDate = createDataByDate(cleanedData, feature, remain_date)
-    getInfoDataByDate(databyDate, train_date)
+    #getInfoDataByDate(databyDate, train_date)
 
     trainloader = []
     testloder = []
     for zone in range(1,nb_zone+1):
-        zoneID = f"Floor{floor}Z{zone}"
-        loaderZtrain = LoaderByZone(databyDate, zoneID, train_date, lookback, lookahead, batch_size, shuffle=True)
-        loaderZtest = LoaderByZone(databyDate, zoneID, test_date, lookback, lookahead, batch_size)
-        trainloader.append(loaderZtrain)
-        testloder.append(loaderZtest)
-    zone_no=nb_zone
+        if zone != 3:
+            zoneID = f"Floor{floor}Z{zone}"
+            loaderZtrain = LoaderByZone(databyDate, zoneID, train_date, lookback, lookahead, batch_size, shuffle=True)
+            loaderZtest = LoaderByZone(databyDate, zoneID, test_date, lookback, lookahead, batch_size)
+            trainloader.append(loaderZtrain)
+            testloder.append(loaderZtest)
+    zone_no=len(trainloader)
+    
+
+    try:
+        graph_type = args['graph_type']
+        print ("graph_type : ",graph_type)
+        graph, graph_name = None, None
+        if graph_type == "complete":
+            graph, graph_name = completegraph(zone_no)
+        if graph_type == "cycle": 
+            graph, graph_name = cycle_graph(zone_no)
+        if graph_type == "grid": 
+            grid_graph, grid = gridgraph(int(np.sqrt(zone_no)),int(np.sqrt(zone_no)))
+        if graph_type == "line": 
+            grid_graph_line, line = gridgraph(zone_no,1)
+    except:
+        pass
+
+
     # for trainloader_item, testloder_item in zip(trainloader, testloder):
     #     zone_no+=1
     # try:

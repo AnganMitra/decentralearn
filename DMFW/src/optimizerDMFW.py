@@ -1,4 +1,5 @@
 from lib import *
+from algoaux import *
 
 class DMFW(optim.Optimizer):
     def __init__(self, params, eta_coef=required, eta_exp=required, L=required, matrix_line=required, reg_coef=required,radius=required):
