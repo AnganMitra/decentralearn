@@ -5,6 +5,6 @@ from models.seq2seq import *
 
 from dataShaper import *
 from algoaux import *
-from modelController import *
+from modelPredictor import *
 from optimizerDMFW import *
 from trainer import *

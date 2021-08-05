@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     parser = argp.ArgumentParser()
 
-    parser.add_argument("-i", "--input_data", help="path of the input data folder")
+    parser.add_argument("-i", "--input_dir", help="path of the input data folder")
     parser.add_argument("-o", "--output_dir", help="path of the output directory.")
     parser.add_argument("-sdt", "--start_date", help="start date: [YYYY-MM-DD]")
     parser.add_argument("-edt", "--end_date", help="end date: [YYYY-MM-DD]")
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     
     try:
         input_dir = args['input_dir']
-        print ("IFC File : ", input_dir)
+        print ("input_dir : ", input_dir)
     except:
         pass
     try:
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         pass
     
     
-
+    import pdb; pdb.set_trace()
     floor_dict = createDictFloor(input_dir, f"Floor{floor}")
     for data in floor_dict.keys():
         zone = floor_dict[data]
@@ -128,13 +128,14 @@ if __name__ == '__main__':
         loaderZtest = LoaderByZone(databyDate, zoneID, test_date, lookback, lookahead, batch_size)
         trainloader.append(loaderZtrain)
         testloder.append(loaderZtest)
-    zone_no=0
-    for trainloader_item, testloder_item in zip(trainloader, testloder):
-        zone_no+=1
-        trainXMFW = Trainer(graph,trainloader_item,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
+    zone_no=nb_zone
+    # for trainloader_item, testloder_item in zip(trainloader, testloder):
+    #     zone_no+=1
+    try:
+        trainXMFW = Trainer(graph,trainloader,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
                                 path_figure_date= output_dir)
-
+    
         plt.clf()
         plt.figure(figsize=(10,5))
         plt.suptitle("{}".format(graph_name))
@@ -170,13 +171,18 @@ if __name__ == '__main__':
         plt.xlabel("#Iterations",fontsize=15)
         plt.ylabel("Loss",fontsize=15)
         plt.savefig(output_dir+f"OnlineLoss-F{floor}Z{zone_no}.png", dpi=200)
+    except:
+        print ("error in training... quitting...")
+        import pdb; pdb.set_trace()
 
-        model_trained = trainXMFW.models[0]
-        true, pred = ModelPrediction(model_trained,cut_date, testloder_item, lookahead)
+    model_trained = trainXMFW.models[0]
+    true, pred = ModelPrediction(model_trained,cut_date, testloder, lookahead)
 
-        plt.plot(true,label='Ground Truth' ) 
-        plt.plot(pred, label='Predicted')
-        plt.legend(loc='upper right')
-        plt.xlabel("#Iterations",fontsize=15)
-        plt.ylabel("Sensor Value",fontsize=15)
-        plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)
+    plt.plot(true,label='Ground Truth' ) 
+    plt.plot(pred, label='Predicted')
+    plt.legend(loc='upper right')
+    plt.xlabel("#Iterations",fontsize=15)
+    plt.ylabel("Sensor Value",fontsize=15)
+    plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)
+
+    

@@ -36,16 +36,17 @@ def createDTFeat(date1, date2, datadict, features, resample_method="sum" ,scale=
     floors = list(datadict.keys())
     dates = []
     scalers = {}
+    # floor_dict = deepcopy(datadict)
     for data in datadict.keys():
         if resample_method == "sum":
-            resample_move[data] = floor_dict[data][date1:date2].resample(
+            resample_move[data] = datadict[data][date1:date2].resample(
                 "5min").sum()
             
         elif resample_method == "max":
-            resample_move[data] = floor_dict[data][date1:date2].resample(
+            resample_move[data] = datadict[data][date1:date2].resample(
                 "5min").max().bfill()
         elif resample_method == "mean":
-            resample_move[data] = floor_dict[data][date1:date2].resample(
+            resample_move[data] = datadict[data][date1:date2].resample(
                 "5min").mean().bfill()
             
         cols = resample_move[data].columns
@@ -121,14 +122,20 @@ def getInfoDataByDate(data, dates):
             
 def LoaderByZone(data,zone_name,dates, lookback, lookahead, batch_size, shuffle=False):
     loaderZ = {}
+    print (f"Zone {zone_name}")
     for i,date in enumerate(dates):
-        haruharu = data[date][zone_name]
-        trainx, trainy = to_timeseries_input(haruharu, lookback, lookahead,)
-        xshape = torch.tensor(trainx, dtype=torch.float).unsqueeze(-1)
-        yshape = torch.tensor(trainy, dtype=torch.float)
-        tensorwrap = TensorDataset(xshape,yshape)
-        loaderxy = DataLoader(tensorwrap,batch_size = batch_size, shuffle=shuffle, drop_last=True)
-        loaderZ[date] = loaderxy
+        
+        try:
+            haruharu = data[date][zone_name]
+            trainx, trainy = to_timeseries_input(haruharu, lookback, lookahead,)
+            xshape = torch.tensor(trainx, dtype=torch.float).unsqueeze(-1)
+            yshape = torch.tensor(trainy, dtype=torch.float)
+            tensorwrap = TensorDataset(xshape,yshape)
+            loaderxy = DataLoader(tensorwrap,batch_size = batch_size, shuffle=shuffle, drop_last=True)
+            loaderZ[date] = loaderxy
+        except:
+            print (f"Failed to Load Data for Zone {zone_name}")
+            
     return loaderZ
 
 # loaderZ1train = LoaderByZone(databyDate, z1, train_date, lookback, lookahead, batch_size, shuffle=True)

@@ -16,3 +16,4 @@ from torchinfo import summary
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from statsmodels.graphics.tsaplots import plot_acf
 import argparse as argp
+from copy import deepcopy

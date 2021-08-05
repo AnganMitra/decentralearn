@@ -6,7 +6,6 @@ import torch
 import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 import os
-import Graphs
 import networkx as nx
 import torch.optim as optim
 import random

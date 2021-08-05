@@ -82,8 +82,9 @@ class Trainer:
     def train(self, optimizer, L, eta_coef, eta_exp, reg_coef, radius, path_figure_date):
         seed_everything()
         self.reset()
-        
-        z1= list(self.dataloader.keys())[0]
+
+        import pdb; pdb.set_trace()
+        days= list(self.dataloader[0].keys())
 
         for i in range(self.num_nodes):
             self.models[i] = self.model(*self.param)
@@ -99,7 +100,7 @@ class Trainer:
         
         t = 0
         
-        for date in z1.keys():
+        for date in days:
             
             for i,loader in enumerate(self.dataloader):
                 truez, predz = ModelPrediction(self.models[i], date, loader,lookahead)
@@ -108,14 +109,20 @@ class Trainer:
                     os.makedirs(path)
                 self.plotPrediction(truez, predz,date,path_to_save=path)
             
+            sameDayData =[]
+            for zone in self.dataloader: sameDayData.append(zone[date])
+            for item in zip(sameDayData): 
+                
+                datazones= [self.__nodeInit(*minuteLevelItem)  for minuteLevelItem in item]
+
             # for (couple1, couple2, couple4,couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
             #     datazones = [self.__nodeInit(*couple1), 
             #                  self.__nodeInit(*couple2),
             #                  self.__nodeInit(*couple4),
             #                  self.__nodeInit(*couple5)]
-            datazones =[] 
-            for zone in self.dataloader:
-                datazones.append(self.__nodeInit(*zone))
+            # datazones =[] 
+            # for zone in self.dataloader:
+                # datazones.append(self.__nodeInit(*zone))
 
                 for i in range(self.num_nodes):
                     self.initModelWeight(self.models[i])
