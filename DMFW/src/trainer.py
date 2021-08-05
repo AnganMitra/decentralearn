@@ -83,7 +83,6 @@ class Trainer:
         seed_everything()
         self.reset()
 
-        
         days= list(self.dataloader[0].keys())
 
         for i in range(self.num_nodes):
@@ -104,22 +103,38 @@ class Trainer:
             
             for i,loader in enumerate(self.dataloader):
                 truez, predz = ModelPrediction(self.models[i], date, loader,lookahead)
+                if len(truez)==0 or len(predz)==0 : continue
                 path = path_figure_date+"/Model_"+str(i)+"/"
                 if not os.path.exists(path):
                     os.makedirs(path)
                 self.plotPrediction(truez, predz,date,path_to_save=path)
             
-            sameDayData =[]
-            for zone in self.dataloader: sameDayData.append(zone[date])
-            for item in zip(sameDayData): 
-                
-                datazones= [self.__nodeInit(*minuteLevelItem)  for minuteLevelItem in item]
+            # sameDayData =[]
 
-            # for (couple1, couple2, couple4,couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
-            #     datazones = [self.__nodeInit(*couple1), 
-            #                  self.__nodeInit(*couple2),
-            #                  self.__nodeInit(*couple4),
-            #                  self.__nodeInit(*couple5)]
+            # for zone in self.dataloader: 
+            #     try:
+            #         sameDayData.append(zone[date])
+            #     except:
+            #         print("data missing for zone")
+            #     finally:
+            #         print (f"{len(sameDayData)} Zones processed for training ..")
+            
+            # self.num_nodes=len(sameDayData)
+            
+            # for item in zip(sameDayData): 
+            #     import pdb; pdb.set_trace()
+            #     datazones= [self.__nodeInit(minuteLevelItem)  for minuteLevelItem in item]
+            # import pdb; pdb.set_trace()
+            indexRemove = [i for i,v in enumerate(self.dataloader) if len(v)==0]
+            self.dataloader.pop(indexRemove[0])
+            self.num_nodes=len(self.dataloader)
+            z1, z2, z3 = self.dataloader
+
+            for (couple1, couple2, couple3) in zip(z1[date],z2[date],  z3[date]):
+                datazones = [self.__nodeInit(*couple1), 
+                             self.__nodeInit(*couple2),
+                             self.__nodeInit(*couple3),]
+                            #  self.__nodeInit(*couple5)]
             # datazones =[] 
             # for zone in self.dataloader:
                 # datazones.append(self.__nodeInit(*zone))
