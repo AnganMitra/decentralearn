@@ -5,6 +5,7 @@ from trainer import *
 from optimizerDMFW import *
 from modelPredictor import *
 from graphs import *
+from models import cnn, linear,lstm,seq2seq
 
 if __name__ == '__main__':
 
@@ -20,6 +21,9 @@ if __name__ == '__main__':
     parser.add_argument("-grt", "--graph_type", help="Types of graph: [grid, cycle, line, complete, isolated]")
     parser.add_argument("-feat", "--feature", help="Feature to learn : [temperature, humidity, power]")
     parser.add_argument("-resm", "--resample_method", help="Resample method: [min, max, sum]")
+    parser.add_argument("-model", "--model", help="Choose between linear, seq2seq, lstm, cnn")
+    parser.add_argument("-plotFig", "--plotFig", help="True to plot figures")
+    parser.add_argument("-modePred", "--modePred", help="True to predict")
 
 
     args = vars(parser.parse_args())
@@ -32,6 +36,9 @@ if __name__ == '__main__':
     nb_zone=None
     graph_type=None
     model = None
+    plotFig = False
+    modePred = False
+
     
     try:
         input_dir = args['input_dir']
@@ -100,8 +107,40 @@ if __name__ == '__main__':
     except:
         pass
     
+    try:
+        model = args['model']
+        if model == "cnn":
+            model = cnn
+        elif model == "linear":
+            model = linear
+        elif model == "seq2seq":
+            model = seq2seq
+        elif model == "lstm":
+            model = lstm
+        
+    except:
+        model = seq2seq
+    finally:
+        print ("model: ",model)
     
-    import pdb; pdb.set_trace()
+
+    try:
+        plotFig = args['plotFig']
+        if plotFig == "True": plotFig =True
+        print ("plot Figures : ", plotFig)
+    except:
+        pass
+    
+    try:
+        modePred = args['modePred']
+        if modePred == "True": modePred =True
+        print ("Prediction mode  : ", modePred)
+    except:
+        pass
+
+
+    
+    # import pdb; pdb.set_trace()
     floor_dict = createDictFloor(input_dir, f"Floor{floor}")
     for data in floor_dict.keys():
         zone = floor_dict[data]
@@ -131,11 +170,17 @@ if __name__ == '__main__':
     zone_no=nb_zone
     # for trainloader_item, testloder_item in zip(trainloader, testloder):
     #     zone_no+=1
-    try:
+    # try:
+    if True:
         trainXMFW = Trainer(graph,trainloader,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
                                 path_figure_date= output_dir)
-    
+    # except:
+    else:
+        print ("error in training... quitting...")
+        import pdb; pdb.set_trace()
+
+    if plotFig:
         plt.clf()
         plt.figure(figsize=(10,5))
         plt.suptitle("{}".format(graph_name))
@@ -171,18 +216,16 @@ if __name__ == '__main__':
         plt.xlabel("#Iterations",fontsize=15)
         plt.ylabel("Loss",fontsize=15)
         plt.savefig(output_dir+f"OnlineLoss-F{floor}Z{zone_no}.png", dpi=200)
-    except:
-        print ("error in training... quitting...")
-        import pdb; pdb.set_trace()
+    
+    if modePred:
+        model_trained = trainXMFW.models[0]
+        true, pred = ModelPrediction(model_trained,cut_date, testloder, lookahead)
 
-    model_trained = trainXMFW.models[0]
-    true, pred = ModelPrediction(model_trained,cut_date, testloder, lookahead)
-
-    plt.plot(true,label='Ground Truth' ) 
-    plt.plot(pred, label='Predicted')
-    plt.legend(loc='upper right')
-    plt.xlabel("#Iterations",fontsize=15)
-    plt.ylabel("Sensor Value",fontsize=15)
-    plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)
+        plt.plot(true,label='Ground Truth' ) 
+        plt.plot(pred, label='Predicted')
+        plt.legend(loc='upper right')
+        plt.xlabel("#Iterations",fontsize=15)
+        plt.ylabel("Sensor Value",fontsize=15)
+        plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)
 
     

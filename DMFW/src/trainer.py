@@ -83,7 +83,7 @@ class Trainer:
         seed_everything()
         self.reset()
 
-        import pdb; pdb.set_trace()
+        
         days= list(self.dataloader[0].keys())
 
         for i in range(self.num_nodes):
@@ -136,7 +136,7 @@ class Trainer:
                         loss.backward()
 
                     self.optimizers[i].initValue(closure)
-                
+                import pdb; pdb.set_trace()
                 for l in range(L):
                     #print("--------------------------")
                     for i in range(self.num_nodes):
