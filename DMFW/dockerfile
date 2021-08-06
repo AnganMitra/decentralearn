@@ -1,0 +1,10 @@
+FROM python:3.8
+
+# COPY ../../BKDataCleaned/ /opt/BKDataCleaned/ 
+
+COPY requirement.txt requirement.txt
+RUN pip install -r requirement.txt
+COPY src/ /opt/src
+COPY run.sh /opt/run.sh
+
+# CMD [ "cd", "/opt/" ]
