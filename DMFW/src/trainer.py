@@ -153,7 +153,7 @@ class Trainer:
                         loss.backward()
 
                     self.optimizers[i].initValue(closure)
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 for l in range(L):
                     #print("--------------------------")
                     for i in range(self.num_nodes):

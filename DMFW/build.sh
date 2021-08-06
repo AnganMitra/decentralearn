@@ -1,1 +1,1 @@
-docker build -t dmfw .
+docker build -t angmit/decentralearn .
