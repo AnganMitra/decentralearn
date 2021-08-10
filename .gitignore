@@ -1,5 +1,6 @@
 */sample.conf
 OnlineModel
+1LookAhead
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
