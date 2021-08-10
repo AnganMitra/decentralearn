@@ -3,9 +3,10 @@ import os
 import matplotlib.pyplot as plt
 import argparse as agp
 
-dataLog={}
+
 
 def populateDataLog(input_dir):
+    dataLog={}
     for file in os.listdir(input_dir):
         lossArray = []
         gapArray = []
@@ -25,8 +26,9 @@ def populateDataLog(input_dir):
             "gapArray" : gapArray,
             "localGapArray" : localGapArray
         }
+    return dataLog
 
-def plotComparisons(keys, comparator, output_dir):
+def plotComparisons(dataLog,keys, comparator, output_dir):
     plt.clf()
     for key in keys:
         plt.plot([i for i in range(len(dataLog[key]['lossArray']))],dataLog[key]['lossArray'], label="loss"  )
@@ -56,7 +58,7 @@ if __name__=="__main__":
     parser.add_argument("-i", "--input_dir", help="path of the input data folder")
     parser.add_argument("-o", "--output_dir", help="path of the output directory.")
     parser.add_argument("-c", "--comparator", help="Compare between graphs, features, floors")
-
+    parser.add_argument("-a", "--argument", help="mention the options to compare")
     args = vars(parser.parse_args())
     input_dir=None
     output_dir = None
@@ -79,15 +81,24 @@ if __name__=="__main__":
     except:
         pass
 
-    populateDataLog(input_dir)
+    try:
+        argument = args['argument'].strip().split(",")
+        print ("argument : ", argument)
+    except:
+        pass
+
+    dataLog=populateDataLog(input_dir)
+    # import pdb; pdb.set_trace()
     keys = []
-    comparator =None
     if "floor" == comparator: 
-        comparator = floor 
-        keys = [i for i in dataLog.keys() if f"dfmw-{comparator}-" in i]
+        for arg in argument:
+            keys += [i for i in dataLog.keys() if f"dfmw-{arg}-" in i]
     elif "graph" == comparator: 
-        keys = [i for i in dataLog.keys() if f"-{comparator}-" in i]
+        for arg in argument:
+            keys = [i for i in dataLog.keys() if f"-{arg}-" in i]
     elif "feature" == comparator: 
-        keys = [i for i in dataLog.keys() if f"-{comparator}" in i]
+        for arg in argument:
+            keys = [i for i in dataLog.keys() if i.endswith(f"-{arg}.csv") ]
     
-    plotComparisons(keys, comparator, output_dir= "./")
+    print (keys)
+    plotComparisons(dataLog,keys, comparator, output_dir)
