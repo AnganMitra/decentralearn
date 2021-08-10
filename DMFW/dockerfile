@@ -1,10 +1,11 @@
 FROM python:3.8
+# FROM ubuntu:latest
 
 # COPY ../../BKDataCleaned/ /opt/BKDataCleaned/ 
-
+# RUN apt-get install -y python3
 COPY requirement.txt requirement.txt
 RUN pip install -r requirement.txt
 COPY src/ /opt/src
 COPY run.sh /opt/run.sh
 
-# CMD [ "cd", "/opt/" ]
+CMD [ "cd", "/opt/" ]
