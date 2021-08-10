@@ -1,3 +1,4 @@
+from posix import listdir
 from lib import *
 from params import *
 from dataShaper import *
@@ -6,7 +7,7 @@ from optimizerDMFW import *
 from modelPredictor import *
 from graphs import *
 from models import cnn, linear,lstm,seq2seq
-
+from QBucketUploader import pushToQBucket
 if __name__ == '__main__':
 
     parser = argp.ArgumentParser()
@@ -76,7 +77,7 @@ if __name__ == '__main__':
         print ("Number of zones : ", nb_zone)
     except:
         pass
-    '''
+    
     try:
         graph_type = args['graph_type']
         print ("graph_type : ",graph_type)
@@ -90,7 +91,7 @@ if __name__ == '__main__':
         if graph_type == "line": 
             grid_graph_line, line = gridgraph(nb_zone,1)
     except:
-        pass'''
+        pass
 
     try:
         feature = args['feature']
@@ -191,13 +192,16 @@ if __name__ == '__main__':
 
     # for trainloader_item, testloder_item in zip(trainloader, testloder):
     #     zone_no+=1
-    # try:
-    if True:
+    try:
+    # if True:
         trainXMFW = Trainer(graph,trainloader,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
                                 path_figure_date= output_dir)
-    # except:
-    else:
+        # import pdb; pdb.set_trace()
+        for item in [i for i in os.listdir(output_dir) if "Model_" in i]: pushToQBucket(output_dir+item+"/", f"Exp-{floor}-{feature}-{graph_name}/"+item+"/")
+        pushToQBucket(output_dir, f"Exp-{floor}-{feature}-{graph_name}/", skipDirectoryInclude=True)
+    except:
+    # else:
         print ("error in training... quitting...")
         import pdb; pdb.set_trace()
 
@@ -239,14 +243,21 @@ if __name__ == '__main__':
         plt.savefig(output_dir+f"OnlineLoss-F{floor}Z{zone_no}.png", dpi=200)
     
     if modePred:
-        model_trained = trainXMFW.models[0]
-        true, pred = ModelPrediction(model_trained,cut_date, testloder, lookahead)
-
-        plt.plot(true,label='Ground Truth' ) 
-        plt.plot(pred, label='Predicted')
-        plt.legend(loc='upper right')
-        plt.xlabel("#Iterations",fontsize=15)
-        plt.ylabel("Sensor Value",fontsize=15)
-        plt.savefig(output_dir+f"Prediction-F{floor}Z{zone_no}.png", dpi=200)
-
-    
+        try:
+            os.mkdir(output_dir+"Prediction/")
+        except:
+            pass
+        # model_trained = trainXMFW.models[0]
+        # import pdb; pdb.set_trace()
+        for zone_no, model_trained in enumerate(trainXMFW.models):
+            for date in testloder[zone_no].keys():
+                true, pred = ModelPrediction(model_trained,date, testloder[zone_no], lookahead)
+                plt.clf()
+                # import pdb; pdb.set_trace()
+                plt.plot([i for i in range(len(true))],true,label='Ground Truth' ) 
+                plt.plot([i for i in range(len(pred))],pred, label='Predicted')
+                plt.legend(loc='upper right')
+                plt.xlabel("#Iterations",fontsize=15)
+                plt.ylabel("Gap",fontsize=15)
+                plt.savefig(output_dir+f"Prediction/F{floor}Z{zone_no}-{date}.png", dpi=200)
+                pd.DataFrame.from_dict({"True":true, "Predicted": pred}).to_csv(output_dir+f"Prediction/F{floor}Z{zone_no}-{date}.csv")

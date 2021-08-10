@@ -187,8 +187,11 @@ class Trainer:
                 if t % 1 == 0:
                     print("t_{} : loss : {:.5f} gap : {} local_gap {}".format(
                         t, loss, gap, local_gap))
-                    
-                self.obj_values[t, :] = [t, loss, gap, local_gap]
+                try:
+                    self.obj_values[t, :] = [t, loss, gap, local_gap]
+                except:
+                    print ("problem in Training Process... Skipping for debug...")
+                    # import pdb; pdb.set_trace()
                     
                 t+=1
             
