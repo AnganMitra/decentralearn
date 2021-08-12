@@ -30,22 +30,13 @@ def populateDataLog(input_dir):
 
 def plotComparisons(dataLog,keys, comparator, output_dir):
     plt.clf()
-    for key in keys:
-        plt.plot([i for i in range(len(dataLog[key]['lossArray']))],dataLog[key]['lossArray'], label="loss"  )
-    plt.legend()
-    plt.savefig(output_dir+f"{comparator}-Loss.png", dpi=200)
-
-    plt.clf()
-    for key in keys:
-        plt.plot([i for i in range(len(dataLog[key]['gapArray']))],dataLog[key]['gapArray'], label="Gap"  )
-    plt.legend()
-    plt.savefig(output_dir+f"{comparator}-gapArray.png", dpi=200)
-    
-    plt.clf()
-    for key in keys:
-        plt.plot([i for i in range(len(dataLog[key]['localGapArray']))],dataLog[key]['localGapArray'], label="local Gap Array"  )
-    plt.legend()
-    plt.savefig(output_dir+f"{comparator}-localGapArray.png", dpi=200)    
+    for measure in ["lossArray", "gapArray", "localGapArray" ]:
+        for key in keys:
+            plt.plot([i for i in range(len(dataLog[key][measure]))],dataLog[key][measure], label=key  )
+        plt.legend()
+        # plt.show()
+        plt.savefig(output_dir+f"{comparator}-{measure}.png", dpi=200, bbox_anchor="tight")
+ 
 
 if __name__=="__main__":
     featureOption = ["temperature"]
@@ -88,7 +79,7 @@ if __name__=="__main__":
         pass
 
     dataLog=populateDataLog(input_dir)
-    # import pdb; pdb.set_trace()
+
     keys = []
     if "floor" == comparator: 
         for arg in argument:
