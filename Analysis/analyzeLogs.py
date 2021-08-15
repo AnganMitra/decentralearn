@@ -3,16 +3,22 @@ import os
 import matplotlib.pyplot as plt
 import argparse as agp
 
+featureOptions = ["temp", "ACPower", "lux", "lightPower"]
+compOptions = ["floorComp", "graphComp", "featureComp"]
+graphOptions=["complete","cycle", "line"]
+floorOptions = [3,4,5,7]
 
-
-def populateDataLog(input_dir):
-    dataLog={}
-    for file in os.listdir(input_dir):
+def load_directory( directory):
+    print (input_dir, directory)
+    floorwisePerf = {}
+    for file in os.listdir(directory):
+        floorNumber = file.split("-")[1]
         lossArray = []
         gapArray = []
         localGapArray =[]
-        a=open(input_dir+file, "r").read().replace("0>", "").split("\n")
+        a=open(directory+file, "r").read().split("\n")
         for item in a:
+            if "loss" not in item: continue
             try:
                 b=item.strip().replace(":", "").split()
                 loss, gap, local_gap = b[2],b[4], b[-1]
@@ -21,13 +27,20 @@ def populateDataLog(input_dir):
                 localGapArray.append(local_gap)
             except:
                 pass
-        dataLog[file]={
+        floorwisePerf[floorNumber]={
             "lossArray" :lossArray,
             "gapArray" : gapArray,
             "localGapArray" : localGapArray
         }
-    return dataLog
+    return floorwisePerf
 
+def populateDataLog(input_dir):
+    dataLog={}
+    for graph in graphOptions:
+        for feature in featureOptions:
+            dataLog[f"{graph}-{feature}"] = load_directory( f"{input_dir}{graph}-{feature}/")    
+
+    
 def plotComparisons(dataLog,keys, comparator, output_dir):
     plt.clf()
     for measure in ["lossArray", "gapArray", "localGapArray" ]:
@@ -39,10 +52,7 @@ def plotComparisons(dataLog,keys, comparator, output_dir):
  
 
 if __name__=="__main__":
-    featureOption = ["temperature"]
-    compOptions = ["floorComp", "graphComp", "featureComp"]
-    graphOptions=["complete","cycle"]
-    floorOptions = [3,5,7]
+
 
     parser = agp.ArgumentParser()
 
