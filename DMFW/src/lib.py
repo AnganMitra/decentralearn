@@ -9,6 +9,7 @@ import os
 import networkx as nx
 import torch.optim as optim
 import random
+import copy
 from operator import add
 from copy import deepcopy
 from collections import defaultdict
