@@ -252,7 +252,7 @@ if __name__ == '__main__':
             pass
         # model_trained = trainXMFW.models[0]
         # import pdb; pdb.set_trace()
-        for zone_no, model_trained in enumerate(trainXMFW.models):
+        for zone_no, model_trained in enumerate(trainXMFW.best_models):
             for date in testloder[zone_no].keys():
                 true, pred = ModelPrediction(model_trained,date, testloder[zone_no], lookahead)
                 plt.clf()

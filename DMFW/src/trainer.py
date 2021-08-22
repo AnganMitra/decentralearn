@@ -33,6 +33,7 @@ class Trainer:
         self.models = [0.] * self.num_nodes
         self.losses = [0.] * self.num_nodes
         self.gaps = [0.] * self.num_nodes
+        self.best_models = [0.]*self.num_nodes
 
         self.obj_values = np.ndarray((self.num_iterations + 1, 4),
                                      dtype='float')
@@ -98,6 +99,7 @@ class Trainer:
                                            matrix_line=self.A[i],
                                            reg_coef=reg_coef,
                                            radius=radius)
+            self.best_models[i] = copy.deepcopy(self.models[i])
 
         self.final_gap = [0.] * self.num_nodes
         
@@ -105,15 +107,14 @@ class Trainer:
         
         for date in days:
             
+            '''
             for i,loader in enumerate(self.dataloader):
                 truez, predz = ModelPrediction(self.models[i], date, loader,lookahead)
                 if len(truez)==0 or len(predz)==0 : continue
                 path = path_figure_date+"/Model_"+str(i)+"/"
                 if not os.path.exists(path):
                     os.makedirs(path)
-                
-                self.storePrediction(truez, predz,date,path_to_save=path)
-                # self.plotPrediction(truez, predz,date,path_to_save=path)
+                self.plotPrediction(truez, predz,date,path_to_save=path)'''
             
             # sameDayData =[]
 
@@ -135,6 +136,8 @@ class Trainer:
             #self.dataloader.pop(indexRemove[0])
             #self.num_nodes=len(self.dataloader)
             z1, z2, z4, z5  = self.dataloader
+
+
 
             for (couple1, couple2, couple4, couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
                 datazones = [self.__nodeInit(*couple1), 
@@ -160,10 +163,21 @@ class Trainer:
 
                     self.optimizers[i].initValue(closure)
                 # import pdb; pdb.set_trace()
+
+                opt_index = np.random.randint(low=0,high=L, size=1)
+
+
                 for l in range(L):
                     #print("--------------------------")
+
+                    if l==opt_index:
+                        for i in range(self.num_nodes):
+                            self.best_models[i] = copy.deepcopy(self.models[i])
+
+
                     for i in range(self.num_nodes):
                         self.optimizers[i].neighborsAverage(self.optimizers)
+                        
                     for i in range(self.num_nodes):
                         
                         def closure():
@@ -180,7 +194,7 @@ class Trainer:
                     with torch.no_grad():
                         self.models[i].eval()
                         x, y = iter(datazones[i]).next()
-                        outputs = self.models[i](x)
+                        outputs = self.best_models[i](x)
                         curr_loss = self.loss(outputs, y)
                     self.final_gap[i] += self.optimizers[i].init_gap
                     self.final_gap[i] /= (t + 1)
