@@ -8,6 +8,7 @@ from modelPredictor import *
 from graphs import *
 from models import cnn, linear,lstm,seq2seq
 from QBucketUploader import pushToQBucket
+import pickle
 if __name__ == '__main__':
 
     parser = argp.ArgumentParser()
@@ -136,7 +137,7 @@ if __name__ == '__main__':
     
     try:
         modePred = args['modePred']
-        if modePred == "True": modePred =True
+        modePred =True if modePred == "True" else False
         print ("Prediction mode  : ", modePred)
     except:
         pass
@@ -183,9 +184,9 @@ if __name__ == '__main__':
         if graph_type == "cycle": 
             graph, graph_name = cycle_graph(zone_no)
         if graph_type == "grid": 
-            grid_graph, grid = gridgraph(int(np.sqrt(zone_no)),int(np.sqrt(zone_no)))
+            graph, graph_name = gridgraph(int(np.sqrt(zone_no)),int(np.sqrt(zone_no)))
         if graph_type == "line": 
-            grid_graph_line, line = gridgraph(zone_no,1)
+            graph, graph_name = gridgraph(zone_no,1)
     except:
         pass
 
@@ -197,13 +198,15 @@ if __name__ == '__main__':
         trainXMFW = Trainer(graph,trainloader,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
                                 path_figure_date= output_dir)
+        pickle.dump(trainXMFW, open(output_dir+f"{graph_type}-{feature}-{floor}-trainer.pkl", "wb"))
         # import pdb; pdb.set_trace()
-        for item in [i for i in os.listdir(output_dir) if "Model_" in i]: pushToQBucket(output_dir+item+"/", f"Exp-{floor}-{feature}-{graph_name}/"+item+"/")
-        pushToQBucket(output_dir, f"Exp-{floor}-{feature}-{graph_name}/", skipDirectoryInclude=True)
+        # for item in [i for i in os.listdir(output_dir) if "Model_" in i]: pushToQBucket(output_dir+item+"/", f"Exp-{floor}-{feature}-{graph_name}/"+item+"/")
+        # pushToQBucket(output_dir, f"Exp-{floor}-{feature}-{graph_name}/", skipDirectoryInclude=True)
     except:
     # else:
         print ("error in training... quitting...")
-        import pdb; pdb.set_trace()
+        exit()
+        # import pdb; pdb.set_trace()
 
     if plotFig:
         plt.clf()

@@ -6,6 +6,7 @@ FROM python:3.8
 COPY requirement.txt requirement.txt
 RUN pip install -r requirement.txt
 COPY src/ /opt/src
-COPY run.sh /opt/run.sh
+CMD ["bash"]
+# COPY run.sh /opt/run.sh
 
-CMD [ "cd", "/opt/" ]
+# CMD [ "cd", "/opt/" ]

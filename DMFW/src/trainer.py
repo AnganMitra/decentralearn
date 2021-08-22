@@ -79,6 +79,10 @@ class Trainer:
         fig.savefig(os.path.join(path_to_save,date))
         plt.close()
 
+    def storePrediction(self, true, pred,date,path_to_save):
+        fileName = os.path.join(path_to_save,date)
+        pd.DataFrame({"Ground Truth" : true, "Prediction": pred}).to_csv(fileName)
+        
     def train(self, optimizer, L, eta_coef, eta_exp, reg_coef, radius, path_figure_date):
         seed_everything()
         self.reset()
@@ -107,7 +111,9 @@ class Trainer:
                 path = path_figure_date+"/Model_"+str(i)+"/"
                 if not os.path.exists(path):
                     os.makedirs(path)
-                self.plotPrediction(truez, predz,date,path_to_save=path)
+                
+                self.storePrediction(truez, predz,date,path_to_save=path)
+                # self.plotPrediction(truez, predz,date,path_to_save=path)
             
             # sameDayData =[]
 

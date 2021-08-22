@@ -1,4 +1,4 @@
-import qarnot
+import qarnot,os
 
 # def learnOnCloud():
 #    conn = qarnot.Connection("sample.conf")
@@ -19,7 +19,7 @@ import qarnot
 
 # learnOnCloud()
 
-def runExperiment(floorNumber, graph, feature, ):
+def runQExperiment(floorNumber, graph, feature, ):
    conn = qarnot.Connection("sample.conf")
    task = conn.create_task(f"dfmw-{floorNumber}-{graph}-{feature}", "docker-network")
    task.constants["DOCKER_REPO"] = "angmit/decentralearn"
@@ -36,13 +36,28 @@ def runExperiment(floorNumber, graph, feature, ):
    task.result = conn.retrieve_bucket("dmfw")
    task.submit()
 
+def runLocalExperiment(floorNumber, graph, feature, ):
+    
+    command = f"python3 src/main.py -i ../BKDataCleaned/  -o ../ModelDump/{floorNumber}-{graph}-{feature}-OnlineModel/  -sdt 2019-03-07 -edt 2019-12-31  -cdt 2019-05-08 -fl {floorNumber} -zn 5  -grt {graph}  -feat {feature}  -resm max -model cnn -plotFig True -modePred False > ../Analysis/logs/dmfw-{floorNumber}-{graph}-{feature}.txt  "
+    print (command)
+    os.system(command)
 
 
-if __name__=="__main__":
+def runAll():
     # learnOnCloud() # test one task
     for feature in ["temperature", "humidity", 'ACPower','lightPower','appPower','lux']:
         for graph in [ "cycle", "complete","grid", "line"]:
             for floorNumber in [3,4,5,7]:
-                runExperiment(floorNumber, graph, feature, )
-            
+                print (floorNumber, graph, feature,)
+                runLocalExperiment(floorNumber, graph, feature, )
+                
+   
+
+if __name__=="__main__":
+    for feature in ['temperature']:
+        for graph in [ "line"]:
+            for floorNumber in [3,4,5,7]:
+                print (floorNumber, graph, feature,)
+                runLocalExperiment(floorNumber, graph, feature, )
+         
 
