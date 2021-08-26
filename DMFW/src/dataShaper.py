@@ -53,7 +53,7 @@ def createDTFeat(date1, date2, datadict, features, resample_method="sum" ,scale=
         idx = resample_move[data].index
 
         if scale:
-            scaler = MinMaxScaler()
+            scaler = MinMaxScaler(feature_range=(0.2,1))
             scaler.fit(resample_move[data])
             resample_move[data] = pd.DataFrame(scaler.transform(
                 resample_move[data]),
