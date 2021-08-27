@@ -39,6 +39,7 @@ def gridgraph(n, m):
     return G, graph_name
 
 
+
 def compute_weights(G):
     edges = list(G.edges)
     Ei = []
@@ -48,14 +49,16 @@ def compute_weights(G):
         Ej.append(j)
 
     WA = np.zeros((G.number_of_nodes(), G.number_of_nodes()))
-
     for e in range(G.number_of_edges()):
         WA[Ei[e], Ej[e]] = 1 / (1 + max(G.degree(Ei[e]), G.degree(Ej[e])))
 
     WA = WA + WA.T
+    #print(WA)
 
     for i in range(G.number_of_nodes()):
-        neighbors_i = [j for j in G.neighbors(i)]
+        neighbors_i = [j for j in G.neighbors(i) if j!=i]
+        #print(f'Neightbors of {i} is {neighbors_i}')
+        #print(sum([WA[i, j] for j in neighbors_i]))
         WA[i, i] = 1 - sum([WA[i, j] for j in neighbors_i])
 
     return WA
