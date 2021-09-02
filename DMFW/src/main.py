@@ -21,8 +21,8 @@ if __name__ == '__main__':
     parser.add_argument("-zn", "--nb_zone", help="number of zones")
     parser.add_argument("-grt", "--graph_type", help="Types of graph: [grid, cycle, line, complete, isolated]")
     parser.add_argument("-feat", "--feature", help="Feature to learn : [temperature, humidity, power]")
-    parser.add_argument("-resm", "--resample_method", help="Resample method: [min, max, sum]")
-    parser.add_argument("-model", "--model", help="Choose between linear, seq2seq, lstm, cnn")
+    parser.add_argument("-resm", "--resample_method", help="Resample method: [mean, max, sum]")
+    parser.add_argument("-model", "--model", help="Choose between linear,lstm, cnn")
     parser.add_argument("-plotFig", "--plotFig", help="True to plot figures")
     parser.add_argument("-modePred", "--modePred", help="True to predict")
 
@@ -67,8 +67,8 @@ if __name__ == '__main__':
     except:
         pass
     try:
-        floor = args['floor']
-        print ("floor : ",floor)
+        floors = args['floor']
+        print ("floor : ",floors)
     except:
         pass
 
@@ -114,12 +114,12 @@ if __name__ == '__main__':
         model = args['model']
         if model == "cnn":
             model = cnn.CNN1D
+            model_arguments = (8, lookback, lookahead, 5)
         elif model == "linear":
             model = linear.Linear
-        elif model == "seq2seq":
-            model = seq2seq.Seq2Seq
         elif model == "lstm":
             model = lstm.LSTM
+            model_arguments = (1, 60, lookback, lookahead)
         
     except:
         model = seq2seq
@@ -144,24 +144,20 @@ if __name__ == '__main__':
 
     
     # import pdb; pdb.set_trace()
-    floor_dict = createDictFloor(input_dir, f"Floor{floor}")
-    for data in floor_dict.keys():
-        zone = floor_dict[data]
-        print("{} Start: {} End: {} Count:{}".format(data,zone.index.min(),zone.index.max(), zone.shape[0]))
-        print("")
-    resample,scalers, index_nan = createDTFeat(start_date, end_date, floor_dict, feature,resample_method=resample_method)
-    cleanedData, remain_date = cleanNan(resample, index_nan)
-    for data in cleanedData.keys():
-        zone = cleanedData[data]
-        print("{} Start: {} End: {} Count:{}".format(data,zone.index.min(),zone.index.max(), zone.shape[0]))
-        print("{} Dates: {}".format(data,len(np.unique(zone["date"]))))
+    floor_dict = createDictFloor(floors, input_dir)
+    resample, remain_date = createDTFeat(start_date, end_date, floor_dict, feature,resample_method_X=resample_method)
+    scaled_data, scalers = data_scaling(resample, feature)
     
-    getInfoTimeShape(cleanedData)
+    get_info_zone(scaled_data)
 
     train_date, test_date = splitDate(remain_date, cut_date)
-    databyDate = createDataByDate(cleanedData, feature, remain_date)
-    #getInfoDataByDate(databyDate, train_date)
+    databyDate = createDataByDate(scaled_data, feature, remain_date)
+    
+    trainloader, testloader = get_loader(floors, databyDate, train_date, test_date, lookback, lookahead, batch_size)
 
+    #nb_iterations = len(train_date)*len(trainloader[0]["2019-03-08"])
+
+    '''
     trainloader = []
     testloder = []
     for zone in range(1,nb_zone+1):
@@ -171,7 +167,7 @@ if __name__ == '__main__':
             loaderZtest = LoaderByZone(databyDate, zoneID, test_date, lookback, lookahead, batch_size)
             trainloader.append(loaderZtrain)
             testloder.append(loaderZtest)
-    zone_no=len(trainloader)
+    zone_no=len(trainloader)'''
     
 
     try:
@@ -179,27 +175,34 @@ if __name__ == '__main__':
         print ("graph_type : ",graph_type)
         graph, graph_name = None, None
         if graph_type == "complete":
-            graph, graph_name = completegraph(zone_no)
+            graph, graph_name = completegraph(len(trainloader))
         if graph_type == "cycle": 
-            graph, graph_name = cycle_graph(zone_no)
+            graph, graph_name = cycle_graph(len(trainloader))
         if graph_type == "grid": 
-            grid_graph, grid = gridgraph(int(np.sqrt(zone_no)),int(np.sqrt(zone_no)))
+            grid_graph, grid = gridgraph(int(np.sqrt(len(trainloader))),int(np.sqrt(len(trainloader))))
         if graph_type == "line": 
-            grid_graph_line, line = gridgraph(zone_no,1)
+            grid_graph_line, line = gridgraph(len(trainloader,1))
     except:
         pass
 
 
-    # for trainloader_item, testloder_item in zip(trainloader, testloder):
-    #     zone_no+=1
     try:
     # if True:
-        trainXMFW = Trainer(graph,trainloader,model, (8,lookahead,lookback,5), loss_fn,num_iters_base)
+        trainXMFW = Trainer(graph,trainloader,model,*model_arguments, loss_fn,num_iters_base)
         values_dmfw = trainXMFW.train(DMFW, L_DMFW, eta_coef_DMFW, eta_exp_DMFW, reg_coef_DMFW,1,
-                                path_figure_date= output_dir)
+                                path_figure_date=None)
         # import pdb; pdb.set_trace()
-        for item in [i for i in os.listdir(output_dir) if "Model_" in i]: pushToQBucket(output_dir+item+"/", f"Exp-{floor}-{feature}-{graph_name}/"+item+"/")
-        pushToQBucket(output_dir, f"Exp-{floor}-{feature}-{graph_name}/", skipDirectoryInclude=True)
+        #for item in [i for i in os.listdir(output_dir) if "Model_" in i]: pushToQBucket(output_dir+item+"/", f"Exp-{floors}-{feature}-{graph_name}/"+item+"/")
+        #pushToQBucket(output_dir, f"Exp-{floor}-{feature}-{graph_name}/", skipDirectoryInclude=True)
+
+        if not os.path.exist(output_dir):
+            os.makesdirs(output_dir)
+
+        save_log_csv(values_dmfw, output_dir)
+
+        for i in range(len(trainXMFW.best_models)):
+            save_state_dict(trainXMFW.best_models[i],i, output_dir)
+
     except:
     # else:
         print ("error in training... quitting...")
@@ -250,8 +253,8 @@ if __name__ == '__main__':
         # model_trained = trainXMFW.models[0]
         # import pdb; pdb.set_trace()
         for zone_no, model_trained in enumerate(trainXMFW.best_models):
-            for date in testloder[zone_no].keys():
-                true, pred = ModelPrediction(model_trained,date, testloder[zone_no], lookahead)
+            for date in testloader[zone_no].keys():
+                true, pred = ModelPrediction(model_trained,date, testloader[zone_no], lookahead)
                 plt.clf()
                 # import pdb; pdb.set_trace()
                 plt.plot([i for i in range(len(true))],true,label='Ground Truth' ) 

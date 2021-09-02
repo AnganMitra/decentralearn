@@ -58,8 +58,8 @@ class DMFW(optim.Optimizer):
             for k,weight in enumerate(group["params"]):
                 a = lmo(weight.grad.data,self.radius)
                 self.gap += torch.sum(torch.mul(weight.grad.data, weight.data - a))
-                v = proj_l1(self.G[l][k], s=self.radius)
-                #v = lmo(self.G[l][k] - 0.5 + torch.rand_like(self.G[l][k]), s= self.radius)
+                #v = proj_l1(self.G[l][k], s=self.radius)
+                v = lmo(self.G[l][k] - 0.5 + torch.rand_like(self.G[l][k]), radius = self.radius)
                 if weight.grad is None:
                     raise ValueError("Grad is None")
                 self.w_dict[k]["grad_old"] = weight.grad.detach().clone()
@@ -74,8 +74,8 @@ class DMFW(optim.Optimizer):
             with torch.enable_grad():
                 closure()
             for k,weight in enumerate(group["params"]):
-                self.G[l][k] -= 0.5*self.w_dict[k]["ds"]*self.reg_coef
-                #self.G[l][k] += self.w_dict[k]["ds"]*self.reg_coef
+                #self.G[l][k] -= 0.5*self.w_dict[k]["ds"]*self.reg_coef
+                self.G[l][k] += self.w_dict[k]["ds"]*self.reg_coef
                 if weight.grad is None :
                     raise ValueError("Grad is none")
                 weight.grad.add_(-self.w_dict[k]["grad_old"])

@@ -1,13 +1,14 @@
 from lib import * 
 
-def createDictFloor(input_dir,floor_name):
-    dataset_name = os.listdir(input_dir)
+def createDictFloor(floor_idx,path):
+    floorname = [f'Floor{idx}' for idx in floor_idx]
+    fulldata = os.listdir(path)
     getdict = {}
-    floors = [floor for floor in dataset_name if floor_name in floor]
+    floors = [floor for name in floorname for floor in fulldata if name in floor]
     for name in floors:
-        floorname = name.split(".")[0]
-        getdict[floorname] = pd.read_csv(input_dir+name, index_col=0, parse_dates=["Date"])
-        getdict[floorname] = getdict[floorname].sort_index()
+        floor_zone = name.split(".")[0]
+        getdict[floor_zone] = pd.read_csv(path+name, index_col=0, parse_dates=["Date"])
+        getdict[floor_zone] = getdict[floor_zone].sort_index()
     return getdict
 
 def Missing_values(data):
@@ -16,83 +17,63 @@ def Missing_values(data):
     missing_data = pd.concat([total,percent], axis=1, keys=['Total', 'Pourcentage'])
     print (missing_data[(percent>0)],'\n' )
 
-def seed_everything(seed=0):
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
+
     
 def createPlot(date1, date2, features, data):
     for floor in data.keys():
         data[floor].resample("5T").mean()[features][date1:date2].plot(figsize=(20,7))
         
 
-def createDTFeat(date1, date2, datadict, features, resample_method="sum" ,scale=True):
+def createDTFeat(date1, date2, datadict,featureX,resample_method_X="mean"):
     resample_move = {}
     index_nan = {}
     index_small = {}
     floors = list(datadict.keys())
     dates = []
     scalers = {}
-    # floor_dict = deepcopy(datadict)
-    for data in datadict.keys():
-        if resample_method == "sum":
-            resample_move[data] = datadict[data][date1:date2].resample(
-                "5min").sum()
+    for floorname in datadict.keys():
+        dataX = datadict[floorname][date1:date2][featureX].copy()
+        
+        if resample_method_X == "sum":
+            dataX = dataX.resample("5T").sum()
             
-        elif resample_method == "max":
-            resample_move[data] = datadict[data][date1:date2].resample(
-                "5min").max().bfill()
-        elif resample_method == "mean":
-            resample_move[data] = datadict[data][date1:date2].resample(
-                "5min").mean().bfill()
+        elif resample_method_X == "mean":
+            dataX = dataX.resample("5T").mean().bfill()
+        elif resample_method_X == "max":
+            dataX = dataX.resample("5T").max().bfill()
+        else:
+            pass
+        
+        resample_move[floorname] = pd.concat([dataX],axis=1)
+        resample_move[floorname]["date"] = resample_move[floorname].index.date
+        resample_move[floorname]["weekday"] = resample_move[floorname].index.day_name()
+        resample_move[floorname]["date"] = resample_move[floorname]["date"].apply(lambda x: x.strftime("%Y-%m-%d"))
+        
+    for date in resample_move[floors[0]]["date"]:
+        dates.append(str(date))
+    dates = sorted(set(dates))
             
-        cols = resample_move[data].columns
-        idx = resample_move[data].index
+    return resample_move, dates
 
-        if scale:
-            scaler = MinMaxScaler(feature_range=(0.2,1))
-            scaler.fit(resample_move[data])
-            resample_move[data] = pd.DataFrame(scaler.transform(
-                resample_move[data]),
-                                               columns=cols,
-                                               index=idx)
-            scalers[data] = scaler
+def data_scaling(datadict, feature):
+    scalers = {}
+    scaled_data_dict = datadict.copy()
+    for floorname in datadict.keys():
+        cols = datadict[floorname][feature].columns
+        idx = datadict[floorname][feature].index
+        scaler = MinMaxScaler(feature_range=(0,1))
+        scaler.fit(datadict[floorname][feature])
+        scaled_data_dict[floorname][feature] = pd.DataFrame(scaler.transform(datadict[floorname][feature]),columns=cols,index=idx)
+        scalers[floorname] = scaler
 
-        resample_move[data]["weekday"] = resample_move[data].index.day_name()
-        resample_move[data]["date"] = resample_move[data].index.date
-        resample_move[data]["time"] = resample_move[data].index.time
+    return scaled_data_dict, scalers
 
-        nan = np.where(pd.isnull(resample_move[data][features]))[0]
-        index_nan[data] = np.unique(resample_move[data].iloc[nan]["time"])
-
-    return resample_move, scalers, index_nan
-
-def getInfoTimeShape(datadict):
+def get_info_timeshape(datadict):
     for floor in datadict.keys():
         data = datadict[floor]
         print("Floor : {} , shape :{} , TimeMin {} , TimeMax {}".format(floor,data.shape, data.index.min(), data.index.max()))
         Missing_values(data)
-        
-def cleanNan(data,idx_nan):
-    index=[]
-    for k,v in idx_nan.items():
-        for ele in v:
-            index.append(ele)
-    mynan = set(index)
-    newdata = data.copy()
-    remain_date = []
-    for floor in idx_nan.keys():
-        datafloor = data[floor]
-        todropnan = datafloor[datafloor["date"].isin(list(mynan))].index
-        datafloor = datafloor.drop(todropnan)
-        newdata[floor] = datafloor
-        for date in datafloor["date"]:
-            remain_date.append(str(date))
-    remain_date = sorted(set(remain_date))
-    return data, remain_date
+
 
 def rolling_window(series, window_size):
     return np.array([series[i : (i + window_size)] for i in range(0, series.shape[0] - window_size + 1)])
@@ -106,7 +87,8 @@ def createDataByDate(datadict, features, dates):
     databyDate = defaultdict(lambda : defaultdict(dict))
     for date in dates:
         for floor in datadict.keys():
-            databyDate[date][floor] = np.asarray(datadict[floor][date][features])
+            arraydata = datadict[floor].loc[date][features]
+            databyDate[date][floor] = np.asarray(arraydata)#np.asarray(datadict[floor].loc[date][features])
     return databyDate
 
 def splitDate(dates,cutoff):
@@ -120,24 +102,39 @@ def getInfoDataByDate(data, dates):
         for floor in data[date]:
             print("{} shape : {}".format(floor,data[date][floor].shape))
             
-def LoaderByZone(data,zone_name,dates, lookback, lookahead, batch_size, shuffle=False):
+def LoaderByZone(data,zone_name,dates, lookback, lookahead, batch_size, shuffle=False, noise=False):
     loaderZ = {}
-    print (f"Zone {zone_name}")
     for i,date in enumerate(dates):
-        
-        try:
-            haruharu = data[date][zone_name]
-            trainx, trainy = to_timeseries_input(haruharu, lookback, lookahead,)
-            xshape = torch.tensor(trainx, dtype=torch.float).unsqueeze(-1)
-            yshape = torch.tensor(trainy, dtype=torch.float)
-            tensorwrap = TensorDataset(xshape,yshape)
-            loaderxy = DataLoader(tensorwrap,batch_size = batch_size, shuffle=shuffle, drop_last=True)
-            loaderZ[date] = loaderxy
-        except:
-            print (f"Failed to Load Data for Zone {zone_name}")
-            
+        haruharu = data[date][zone_name]
+        trainx, trainy = to_timeseries_input(haruharu, lookback, lookahead)
+        xshape = torch.tensor(trainx, dtype=torch.float)
+        yshape = torch.tensor(trainy, dtype=torch.float).squeeze(-1)
+        tensorwrap = TensorDataset(xshape,yshape)
+        loaderxy = DataLoader(tensorwrap,batch_size = batch_size, shuffle=shuffle, drop_last=True)
+        loaderZ[date] = loaderxy
     return loaderZ
 
+def get_loader(floor_list,datadates, train_date, test_date, lookback, lookahead, batch_size):
+    trainloader, testloader = [], []
+    nb_zone = 5#*len(floor_list)
+    for floor in floor_list:
+        for zone in range(1,nb_zone+1):
+            if zone!=3:
+                zoneID = f'Floor{floor}Z{zone}'
+                print(f'-----{zoneID}-----')
+                loaderZtrain = LoaderByZone(datadates,zoneID,train_date,lookback,lookahead,batch_size, shuffle=True)
+                loaderZtest = LoaderByZone(datadates,zoneID,test_date,lookback, lookahead,batch_size, shuffle=False)
+                trainloader.append(loaderZtrain)
+                testloader.append(loaderZtest)
+    return trainloader, testloader
+
+def save_log_csv(log_file, path_to_save):
+    logs = pd.DataFrame(log_file, columns=["Iteration", "Loss", "Gap", "Local Gaps"])
+    pd.DataFrame.to_csv(logs, os.path.join(path_to_save,f'Floor_log.csv'))
+
+def save_state_dict(model, model_idx, path_to_save):
+    torch.save(model.state_dict(), os.path.join(path_to_save,f'model{model_idx}_statedict.pt'))
+    
 # loaderZ1train = LoaderByZone(databyDate, z1, train_date, lookback, lookahead, batch_size, shuffle=True)
 # loaderZ1test = LoaderByZone(databyDate, z1, test_date, lookback, lookahead, batch_size)
 

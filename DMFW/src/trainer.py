@@ -9,6 +9,7 @@ def seed_everything(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
+
 class Trainer:
     def __init__(self, graph, loaders, model, model_param, loss,
                  num_iterations):
@@ -26,7 +27,6 @@ class Trainer:
         self.optimizers = [0.] * self.num_nodes
         self.models = [0.] * self.num_nodes
         self.losses = [0.] * self.num_nodes
-        #self.gaps = [0.]*self.num_nodes
 
     def reset(self):
         self.optimizers = [0.] * self.num_nodes
@@ -43,19 +43,22 @@ class Trainer:
         nodes = DataLoader(nodewrap, batch_size=data.size(0), shuffle=False)
         return nodes
 
-    def weight_reset(self, layer):
-        if isinstance(layer, nn.BatchNorm1d) or isinstance(layer, nn.Linear) or isinstance(layer,nn.Conv1d):
-            layer.reset_parameters()
-            
     def initModelWeight(self, model):
-        for name,param in model.named_parameters():
-            if 'bias' in name:
-                nn.init.constant_(param,0.)
-            elif 'weight' in name:
-                if not 'batch' in name:
-                    nn.init.xavier_normal_(param)
-                else:
-                    nn.init.uniform_(param)
+        for m in model.modules():
+            if isinstance(m, nn.LSTM):
+                for param in m.parameters():
+                    if len(param.shape) >= 2:
+                        nn.init.xavier_normal_(param.data)
+                    else:
+                        nn.init.constant_(param.data,0)
+            elif isinstance(m,nn.BatchNorm1d):
+                nn.init.uniform_(m.weight.data)
+                nn.init.constant_(m.bias.data,0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight.data)
+                nn.init.uniform_(m.bias.data)
+                #nn.init.constant_(m.bias.data,0)
 
     def saveCheckPts(self, t, path):
         check_pts = {}
@@ -80,7 +83,7 @@ class Trainer:
         fig.savefig(os.path.join(path_to_save,date))
         plt.close()
 
-    def train(self, optimizer, L, eta_coef, eta_exp, reg_coef, radius, path_figure_date):
+    def train(self, optimizer, L, eta_coef, eta_exp, reg_coef, radius, path_figure_date, print_freq):
         seed_everything()
         self.reset()
 
@@ -103,47 +106,26 @@ class Trainer:
         
         for date in days:
             
-            '''
-            for i,loader in enumerate(self.dataloader):
-                truez, predz = ModelPrediction(self.models[i], date, loader,lookahead)
-                if len(truez)==0 or len(predz)==0 : continue
-                path = path_figure_date+"/Model_"+str(i)+"/"
-                if not os.path.exists(path):
-                    os.makedirs(path)
-                self.plotPrediction(truez, predz,date,path_to_save=path)'''
+            try:
+                for i,loader in enumerate(self.num_nodes):
+                    truez, predz = ModelPrediction(self.best_models[i], date, loader,lookahead)
+                    path = path_figure_date+"/Model_"+str(i)+"/"
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    self.plotPrediction(truez, predz,date,path_to_save=path)
+            except :
+                if print_freq == 1:
+                    print(f"----{date}----")
+                pass
             
-            # sameDayData =[]
+            loaderz = []
 
-            # for zone in self.dataloader: 
-            #     try:
-            #         sameDayData.append(zone[date])
-            #     except:
-            #         print("data missing for zone")
-            #     finally:
-            #         print (f"{len(sameDayData)} Zones processed for training ..")
+            for i in range(self.num_nodes):
+                loaderz.append(self.dataloader[i][date])
+
+            for couples in zip(*loaderz):
+                datazones = [self.__nodeInit(*couples[i]) for i in range(len(couples))] 
             
-            # self.num_nodes=len(sameDayData)
-            
-            # for item in zip(sameDayData): 
-            #     import pdb; pdb.set_trace()
-            #     datazones= [self.__nodeInit(minuteLevelItem)  for minuteLevelItem in item]
-            # import pdb; pdb.set_trace()
-            #indexRemove = [i for i,v in enumerate(self.dataloader) if len(v)==0]
-            #self.dataloader.pop(indexRemove[0])
-            #self.num_nodes=len(self.dataloader)
-            z1, z2, z4, z5  = self.dataloader
-
-
-
-            for (couple1, couple2, couple4, couple5) in zip(z1[date],z2[date], z4[date], z5[date]):
-                datazones = [self.__nodeInit(*couple1), 
-                             self.__nodeInit(*couple2),
-                             self.__nodeInit(*couple4),
-                             self.__nodeInit(*couple5)]
-            # datazones =[] 
-            # for zone in self.dataloader:
-                # datazones.append(self.__nodeInit(*zone))
-
 
                 for i in range(self.num_nodes):
                     self.initModelWeight(self.models[i])
